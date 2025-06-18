@@ -110,7 +110,7 @@ def embed_autoplay_audio(path: str):
     )
 
 # --- Streamlit UI ---
-st.title("🎙️ Home.LLC Voice Bot – Speak Like Dhruv")
+st.title("🎙️ Home.LLC Phase 1 Project: Voice Bot – Answers Like Dhruv Kumar")
 
 st.caption("Record your question in the browser, and the bot will answer in my voice – powered by Google Gemini API (didn't use OpenAI API because it is not free) + gTTS.")
 
