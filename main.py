@@ -5,18 +5,18 @@ import pyttsx3
 from google import genai
 from google.genai import types
 
-# Set API key
-os.environ["GOOGLE_API_KEY"] = st.secrets.get("GOOGLE_API_KEY")
+# Set your Gemini API key
+os.environ["GOOGLE_API_KEY"] = st.secrets["GOOGLE_API_KEY"]
 client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY"))
 
 WAV_OUT = "resp.wav"
 
-def transcribe_audio(uploaded_file):
-    recognizer = sr.Recognizer()
-    with sr.AudioFile(uploaded_file) as src:
-        audio = recognizer.record(src)
+def transcribe_audio_file(wav_file):
+    r = sr.Recognizer()
+    with sr.AudioFile(wav_file) as src:
+        audio = r.record(src)
     try:
-        return recognizer.recognize_google(audio)
+        return r.recognize_google(audio)
     except:
         return ""
 
@@ -25,42 +25,50 @@ def gemini_chat(text):
         model="gemini-2.0-flash",
         contents=text,
         config=types.GenerateContentConfig(
-            system_instruction="""You are me—a thoughtful, warm, lightly humorous conversationalist...""",  # trimmed for brevity
+            system_instruction="""
+You are me—a thoughtful, warm, lightly humorous conversationalist.  
+Keep answers personal, sincere, with gentle reflection and occasional humor...
+""",
             max_output_tokens=200,
             temperature=0.7,
         )
     )
     return resp.text
 
-def speak_text_to_wav(text, outpath=WAV_OUT):
+def speak_text_to_wav(text, path=WAV_OUT):
     engine = pyttsx3.init()
-    engine.save_to_file(text, outpath)
+    engine.save_to_file(text, path)
     engine.runAndWait()
 
 def embed_autoplay_audio(path):
     b64 = base64.b64encode(open(path, "rb").read()).decode()
-    audio_html = f'<audio autoplay><source src="data:audio/wav;base64,{b64}" type="audio/wav"></audio>'
-    st.markdown(audio_html, unsafe_allow_html=True)
+    st.markdown(
+        f'<audio autoplay><source src="data:audio/wav;base64,{b64}" type="audio/wav"></audio>',
+        unsafe_allow_html=True,
+    )
 
-# Streamlit UI
-st.title("🎙️ Home.LLC Project: Voice Bot That Speaks Like Me")
-st.caption("Upload a WAV file to ask a question and get a personalized voice response.")
-st.caption("-- Dhruv Kumar")
+st.title("🎙️ Personalized Gemini Voice Bot")
+st.caption("Speak, and the bot responds in my voice!")
 
-uploaded = st.file_uploader("🎧 Upload your voice question (WAV format)", type=["wav"])
+audio_bytes = st.audio_input("🎤 Record your question")
+if audio_bytes:
+    # Let user preview
+    st.audio(audio_bytes, format="audio/wav")
 
-if uploaded is not None:
-    st.audio(uploaded, format='audio/wav')
+    # Save uploaded bytes to WAV file for transcription
+    with open("user.wav", "wb") as f:
+        f.write(audio_bytes.read())
+
     with st.spinner("Transcribing..."):
-        user_text = transcribe_audio(uploaded)
+        user_text = transcribe_audio_file("user.wav")
     st.markdown(f"**You said:** {user_text or '_(unrecognized)_'}")
 
-    if not user_text:
-        st.error("Sorry, couldn't understand your voice.")
-    else:
-        with st.spinner("Generating Gemini reply..."):
+    if user_text:
+        with st.spinner("Generating response..."):
             reply = gemini_chat(user_text)
         st.markdown(f"**Bot says:** {reply}")
+
         with st.spinner("Speaking..."):
-            speak_text_to_wav(reply)
+            speak_text_to_wav(reply, WAV_OUT)
+
         embed_autoplay_audio(WAV_OUT)
