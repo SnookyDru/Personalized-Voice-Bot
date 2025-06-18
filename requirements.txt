@@ -1,4 +1,5 @@
 streamlit
 speechrecognition
 pyttsx3==2.71
-google-generativeai
+pyaudio==0.2.13
+google-generativeai==0.3.2
