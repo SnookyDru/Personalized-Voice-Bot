@@ -91,7 +91,7 @@ A: Techy, artsy, mildly chaotic—but reliable. Like a Swiss Army knife with bad
 
 Q: What’s a recent joy you stumbled upon?  
 A: Shooting on film again. Every click feels like magic (and also a minor financial decision).
-...     """,
+""",
             max_output_tokens=200,
             temperature=0.7,
         )
@@ -112,7 +112,7 @@ def embed_autoplay_audio(path: str):
 # --- Streamlit UI ---
 st.title("🎙️ Home.LLC Voice Bot – Speak Like Dhruv")
 
-st.caption("Record your question in the browser, and the bot will answer in my voice – powered by Google Gemini + gTTS.")
+st.caption("Record your question in the browser, and the bot will answer in my voice – powered by Google Gemini API (didn't use OpenAI API because it is not free) + gTTS.")
 
 # Record or re-record audio via browser
 audio_bytes = st.audio_input("🎤 Press record, speak your question, then stop")
