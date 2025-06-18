@@ -110,9 +110,9 @@ def embed_autoplay_audio(path: str):
     )
 
 # --- Streamlit UI ---
-st.title("🎙️ Home.LLC Phase 1 Project: Voice Bot – Answers Like Dhruv Kumar")
+st.title("🎙️ Home.LLC Phase 1 Project:     Voice Bot – Answers Like Dhruv Kumar")
 
-st.caption("Record your question in the browser, and the bot will answer in my voice – powered by Google Gemini API (didn't use OpenAI API because it is not free) + gTTS.")
+st.caption("Record your question in the browser, and the bot will answer – powered by Google Gemini API (didn't use OpenAI API because it is not free) + gTTS.")
 
 # Record or re-record audio via browser
 audio_bytes = st.audio_input("🎤 Press record, speak your question, then stop")
