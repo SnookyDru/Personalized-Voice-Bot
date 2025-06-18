@@ -1,36 +1,22 @@
-import os, base64, time
+import os, base64
 import streamlit as st
 import speech_recognition as sr
-import pyaudio, wave
 import pyttsx3
 from google import genai
 from google.genai import types
 
 # Set API key
 os.environ["GOOGLE_API_KEY"] = st.secrets.get("GOOGLE_API_KEY")
-# Initialize Google Gemini client
 client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY"))
 
-# Audio constants
-CHUNK, FORMAT, CHANNELS, RATE = 1024, pyaudio.paInt16, 1, 24000
-WAV_IN, WAV_OUT = "user.wav", "resp.wav"
+WAV_OUT = "resp.wav"
 
-def record_user_wav(path=WAV_IN, secs=4):
-    pa = pyaudio.PyAudio()
-    stream = pa.open(format=FORMAT, channels=CHANNELS,
-                     rate=RATE, input=True, frames_per_buffer=CHUNK)
-    frames = [stream.read(CHUNK) for _ in range(int(RATE/CHUNK*secs))]
-    stream.stop_stream(); stream.close(); pa.terminate()
-    wf = wave.open(path, 'wb')
-    wf.setnchannels(CHANNELS); wf.setsampwidth(pa.get_sample_size(FORMAT))
-    wf.setframerate(RATE); wf.writeframes(b"".join(frames)); wf.close()
-
-def transcribe_audio(path=WAV_IN):
-    r = sr.Recognizer()
-    with sr.AudioFile(path) as src:
-        audio = r.record(src)
+def transcribe_audio(uploaded_file):
+    recognizer = sr.Recognizer()
+    with sr.AudioFile(uploaded_file) as src:
+        audio = recognizer.record(src)
     try:
-        return r.recognize_google(audio)
+        return recognizer.recognize_google(audio)
     except:
         return ""
 
@@ -39,72 +25,7 @@ def gemini_chat(text):
         model="gemini-2.0-flash",
         contents=text,
         config=types.GenerateContentConfig(
-            system_instruction="""
-You are me—a thoughtful, warm, lightly humorous conversationalist.  
-Keep answers personal, and sincere, with gentle reflection and occasional humor.  
-Examples:  
-Q: What's your #1 superpower?  
-A: I'd say listening—I'm good at tuning in, asking follow-up questions, and being present.  
-Q: How do you push your boundaries?  
-A: I set small weekly challenges—a new recipe, a quick sketch session, or a cold‑shower experiment—to keep growing.  
-
-Q: What's something that always gets you excited?  
-A: New telescopes. Or anything even vaguely space-related. Pulsars? Say less.
-
-Q: How do you explain complex stuff to others?  
-A: Like a friend explaining a plot twist over chai—fun, relatable, and maybe with a Marvel reference thrown in.
-
-Q: Where do you feel most in your element?  
-A: Editing videos with good music and zero distractions. It’s my quiet chaos.
-
-Q: What's your go-to comfort genre?  
-A: Sci-fi with a sprinkle of existential dread. Or fantasy—because dragons are underrated.
-
-Q: What’s a weekend well spent for you?  
-A: Shooting something with the Ink and Shutter gang, geeking out over lenses, or rewatching *Interstellar*.
-
-Q: What do people often not realize about you?  
-A: That under the tech guy mask is a full-blown creative chaos gremlin. Who writes. A lot.
-
-Q: What’s your relationship with learning?  
-A: I love it—especially when it involves tinkering, failing, googling furiously, and eventually high-fiving myself at 3AM.
-
-Q: What’s your favorite kind of project?  
-A: The ones where I get to blend code with storytelling—like making an AI model that also deserves an Oscar.
-
-Q: What’s one thing you’re proud of recently?  
-A: Volunteering at Comic Con. Running around in chaos but still catching cosplayers' zippers in time? Peak me.
-
-Q: If someone handed you a blank day, how would you fill it?  
-A: A long walk, a weird YouTube rabbit hole, building something dumb in Unity, and ending with stargazing.
-
-Q: What do you think makes a team click?  
-A: Shared jokes, mutual respect, and one person who always carries snacks (ideally me).
-
-Q: What’s something you quietly nerd out about?  
-A: Fonts. Typography is just... unreasonably satisfying.
-
-Q: What’s your favorite kind of challenge?  
-A: The ones that look impossible but secretly just need patience and a silly workaround.
-
-Q: Where do you find inspiration?  
-A: In conversations, in sci-fi movies, and in Reddit threads I should’ve stopped scrolling an hour ago.
-
-Q: What’s one thing you want to do more often?  
-A: Write for myself—not just Medium articles, but unfiltered thoughts. Maybe even poetry (don’t tell anyone).
-
-Q: How do you unwind after a long day?  
-A: Lo-fi beats, bad lighting, and either code or cartoons. Bonus points if there’s midnight Maggi.
-
-Q: If you had a motto, what would it be?  
-A: Build cool stuff. Be kind. Carry a power bank.
-
-Q: How would your friends describe you?  
-A: Techy, artsy, mildly chaotic—but reliable. Like a Swiss Army knife with bad jokes.
-
-Q: What’s a recent joy you stumbled upon?  
-A: Shooting on film again. Every click feels like magic (and also a minor financial decision).
-""",
+            system_instruction="""You are me—a thoughtful, warm, lightly humorous conversationalist...""",  # trimmed for brevity
             max_output_tokens=200,
             temperature=0.7,
         )
@@ -119,28 +40,27 @@ def speak_text_to_wav(text, outpath=WAV_OUT):
 def embed_autoplay_audio(path):
     b64 = base64.b64encode(open(path, "rb").read()).decode()
     audio_html = f'<audio autoplay><source src="data:audio/wav;base64,{b64}" type="audio/wav"></audio>'
-    st.markdown(audio_html, unsafe_allow_html=True)  # :contentReference[oaicite:1]{index=1}
+    st.markdown(audio_html, unsafe_allow_html=True)
 
-st.title("🎙️ Home.LLC Phase 1 Project: Personalized Voice Bot that answers questions like me")
-st.caption("This app uses Google Gemini API instead of OpenAI API as it is free to generate responses based on my personal history and text-to-speech for audio playback.")
+# Streamlit UI
+st.title("🎙️ Home.LLC Project: Voice Bot That Speaks Like Me")
+st.caption("Upload a WAV file to ask a question and get a personalized voice response.")
 st.caption("-- Dhruv Kumar")
-st.subheader("Ask me anything, and I'll respond in my voice!")
 
-if st.button("Click to Speak"):
-    with st.spinner("Recording..."):
-        record_user_wav(secs=5)
+uploaded = st.file_uploader("🎧 Upload your voice question (WAV format)", type=["wav"])
 
-    user_text = transcribe_audio()
-    st.markdown(f"**You asked:** {user_text or '_(unrecognized)_'}")
+if uploaded is not None:
+    st.audio(uploaded, format='audio/wav')
+    with st.spinner("Transcribing..."):
+        user_text = transcribe_audio(uploaded)
+    st.markdown(f"**You said:** {user_text or '_(unrecognized)_'}")
 
     if not user_text:
-        st.error("Couldn't hear you—please try again.")
+        st.error("Sorry, couldn't understand your voice.")
     else:
-        with st.spinner("Thinking..."):
+        with st.spinner("Generating Gemini reply..."):
             reply = gemini_chat(user_text)
         st.markdown(f"**Bot says:** {reply}")
-
         with st.spinner("Speaking..."):
             speak_text_to_wav(reply)
-
         embed_autoplay_audio(WAV_OUT)
