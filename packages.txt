@@ -1,0 +1,5 @@
+portaudio19-dev
+libasound-dev
+libportaudio2
+libportaudiocpp0
+libespeak1
